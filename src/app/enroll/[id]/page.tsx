@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button, Form, Select, Typography, message } from "antd";
-import axios from "axios";
 import '@ant-design/v5-patch-for-react-19';
+import api from '@/lib/api/api'; //  გრძლად უნდა ჩავწერო 
+
+
+ //  გლობალური axios instance
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -24,14 +27,14 @@ export default function EnrollPage() {
 
   const fetchAvailableUsers = async () => {
     try {
-      const courseRes = await axios.get(`http://localhost:5050/courses/${id}`);
+      const courseRes = await api.get(`/courses/${id}`);
       const enrolledIds = courseRes.data.students.map((user: any) =>
         typeof user === "string" ? user : user._id
       );
 
-      const usersRes = await axios.get("http://localhost:5050/users");
+      const usersRes = await api.get("/users"); //  აქაც ჩავანაცვლე
 
-      const filtered = usersRes.data.filter(
+      const filtered = usersRes.data.filter(  // იუსერები,რომლებიც არარიან არჩეულები
         (user: User) => !enrolledIds.includes(user._id)
       );
 
@@ -53,12 +56,12 @@ export default function EnrollPage() {
   const onFinish = async (values: { userIds: string[] }) => {
     try {
       for (const userId of values.userIds) {
-        await axios.patch(`http://localhost:5050/users/${userId}/enroll/${id}`);
+        await api.patch(`/users/${userId}/enroll/${id}`); //  აქაც შევცვალე
       }
 
       message.success("✅ მომხმარებლები წარმატებით დაემატნენ კურსზე");
       form.resetFields();
-      router.push("/"); // დაბრუნება მთავარ გვერდზე
+      router.push("/");
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "შეცდომა მოხდა";
       message.error(errorMessage);

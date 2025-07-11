@@ -4,7 +4,7 @@ import React from 'react';
 
 import { Button, Form, Input, Typography } from 'antd';
 
-import axios from 'axios';
+import api from '@/lib/api/api'; //  axios-ის გლობალური instance
 
 import { useRouter } from 'next/navigation';
 
@@ -18,13 +18,13 @@ export default function CreateCoursePage() {
   const [form] = Form.useForm();
   // AntD_ის ფორმის კონტროლერი 
 
-  const router = useRouter();// url ის შეცვლა 
+  const router = useRouter(); // url ის შეცვლა 
 
   const onFinish = async (values: any) => {//
     // თუ წარმატებით გავიდა მხოლოდ მაშინ გაეშვება
 
     try {
-      await axios.post('http://localhost:5050/courses', values);
+      await api.post('/courses', values);
       //  აგზავნის POST მოთხოვნას API_ზე კურსის შესაქმნელად
 
       router.push('/');
@@ -73,7 +73,6 @@ export default function CreateCoursePage() {
           <Button type="primary" htmlType="submit">
             დამატება
           </Button>
-          
 
           <Button
             style={{ marginLeft: 12 }}
