@@ -12,10 +12,10 @@ import {
   Popconfirm,
   Divider,
 } from 'antd';
-import axios from 'axios';
 import { useParams, useRouter } from 'next/navigation';
-import MultiUserSelect from '@/components/MultiUserSelect'; // ✅ ჩვენი კომპონენტის იმპორტი
+import MultiUserSelect from '@/components/MultiUserSelect'; //  ჩვენი კომპონენტის იმპორტი
 import '@ant-design/v5-patch-for-react-19';
+import api from '@/lib/api/api'; //  axios-ის გლობალური instance
 
 const { Title } = Typography;
 
@@ -37,7 +37,7 @@ export default function EditCoursePage() {
   // კურსის მონაცემების წამოღება
   const fetchCourse = async () => {
     try {
-      const res = await axios.get(`http://localhost:5050/courses/${id}`);
+      const res = await api.get(`/courses/${id}`); //გლობალურად
       form.setFieldsValue(res.data);
       setEnrolledUsers(res.data.students);
       setMaxStudents(res.data.maxStudents);
@@ -55,7 +55,7 @@ export default function EditCoursePage() {
   // კურსის განახლება
   const onFinish = async (values: any) => {
     try {
-      await axios.patch(`http://localhost:5050/courses/${id}`, values);
+      await api.patch(`/courses/${id}`, values);
       message.success('კურსი განახლდა');
       router.push('/');
     } catch (err) {
@@ -66,8 +66,8 @@ export default function EditCoursePage() {
   // იუზერის წაშლა კურსიდან
   const handleUnenroll = async (userId: string) => {
     try {
-      await axios.patch(`http://localhost:5050/users/${userId}/unenroll/${id}`);
-     message.success('🗑️ წაიშალა');
+      await api.patch(`/users/${userId}/unenroll/${id}`);
+      message.success('🗑️ წაიშალა');
       fetchCourse();
     } catch (err) {
       message.error('შეცდომა წაშლისას');
@@ -89,7 +89,7 @@ export default function EditCoursePage() {
     try {
       await Promise.all(
         selectedUserIds.map((userId) =>
-          axios.patch(`http://localhost:5050/users/${userId}/enroll/${id}`)
+          api.patch(`/users/${userId}/enroll/${id}`)
         )
       );
       message.success('დაემატნენ წარმატებით');
@@ -117,7 +117,6 @@ export default function EditCoursePage() {
             </Form.Item>
 
             <Form.Item label="აღწერა" name="description">
-              
               <Input.TextArea rows={3} placeholder="კურსის აღწერა" />
             </Form.Item>
 
