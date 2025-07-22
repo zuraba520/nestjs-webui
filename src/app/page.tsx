@@ -256,7 +256,7 @@ export default function Home() {
         pagination={false}
       />
 
-      {/* გვერდების კონტროლი */}
+      {/* გვერდების კონ*/}
       <div className="flex justify-center mt-6">
         <Pagination
           current={pagination.current}
