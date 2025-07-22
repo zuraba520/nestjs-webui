@@ -1,4 +1,4 @@
-'use client';
+'use client'; 
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -13,34 +13,35 @@ import {
   Divider,
 } from 'antd';
 import { useParams, useRouter } from 'next/navigation';
-import MultiUserSelect from '@/components/MultiUserSelect'; //  ჩვენი კომპონენტის იმპორტი
+import MultiUserSelect from '@/components/MultiUserSelect'; //  მულტი  სელექტი
 import '@ant-design/v5-patch-for-react-19';
-import api from '@/lib/api/api'; //  axios-ის გლობალური instance
+import api from '@/lib/api/api'; 
 
 const { Title } = Typography;
 
+//  ტიპი იუზერისთვის
 interface User {
   _id: string;
   username: string;
 }
 
 export default function EditCoursePage() {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm(); 
   const router = useRouter();
-  const { id } = useParams();
+  const { id } = useParams(); //  კურსის ID URL დან
 
   const [loading, setLoading] = useState(true);
-  const [enrolledUsers, setEnrolledUsers] = useState<User[]>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [enrolledUsers, setEnrolledUsers] = useState<User[]>([]); //  უკვე დამატებული იუზერები
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]); //  ახალი იუზერები
   const [maxStudents, setMaxStudents] = useState(0);
 
-  // კურსის მონაცემების წამოღება
+  //  კურსის დეტალების წამოღება და ფორმაში ჩასმა
   const fetchCourse = async () => {
     try {
-      const res = await api.get(`/courses/${id}`); //გლობალურად
-      form.setFieldsValue(res.data);
-      setEnrolledUsers(res.data.students);
-      setMaxStudents(res.data.maxStudents);
+      const res = await api.get(`/courses/${id}`); 
+      form.setFieldsValue(res.data); // ფორმაში  title, description და maxStudents
+      setEnrolledUsers(res.data.students); //  დარეგის იუზ
+      setMaxStudents(res.data.maxStudents); //  მაქს რაო
     } catch (err) {
       message.error('შეცდომა კურსის წამოღებისას');
     } finally {
@@ -48,6 +49,7 @@ export default function EditCoursePage() {
     }
   };
 
+  
   useEffect(() => {
     if (id) fetchCourse();
   }, [id]);
@@ -57,44 +59,46 @@ export default function EditCoursePage() {
     try {
       await api.patch(`/courses/${id}`, values);
       message.success('კურსი განახლდა');
-      router.push('/');
+      router.push('/'); 
     } catch (err) {
       message.error('კურსის განახლება ვერ მოხერხდა');
     }
   };
 
-  // იუზერის წაშლა კურსიდან
+  // წაშლა 
   const handleUnenroll = async (userId: string) => {
     try {
-      await api.patch(`/users/${userId}/unenroll/${id}`);
+      await api.patch(`/users/${userId}/unenroll/${id}`); // ✅ მოხსნის API
       message.success('🗑️ წაიშალა');
-      fetchCourse();
+      fetchCourse(); // განახლება
     } catch (err) {
       message.error('შეცდომა წაშლისას');
     }
   };
 
-  // რამდენიმე იუზერის ერთად დამატება
+  //  მულტი  enrollment
   const handleBatchEnroll = async () => {
     if (selectedUserIds.length === 0) {
       message.warning('აირჩიე მაინც ერთი');
       return;
     }
 
+    //  Enrollment ლიმიტის გადამოწმება
     if (enrolledUsers.length + selectedUserIds.length > maxStudents) {
       message.error(`დაშვებულია მაქსიმუმ ${maxStudents} სტუდენტი`);
       return;
     }
 
     try {
+      // რამოდენიმე ანუ  ერთდროული enrollment ყველა იუზერისთვის
       await Promise.all(
         selectedUserIds.map((userId) =>
           api.patch(`/users/${userId}/enroll/${id}`)
         )
       );
       message.success('დაემატნენ წარმატებით');
-      setSelectedUserIds([]);
-      fetchCourse();
+      setSelectedUserIds([]); 
+      fetchCourse(); // განახლება
     } catch (err) {
       message.error('დამატების შეცდომა');
     }
@@ -105,9 +109,14 @@ export default function EditCoursePage() {
       <Title level={3}>✏️ კურსის რედაქტირება</Title>
 
       <div style={{ display: 'flex', gap: 40 }}>
-        {/* მარცხენა  ფორმა */}
+        {/*  მარცხენა   ფორმა */}
         <div style={{ flex: 1 }}>
-          <Form form={form} layout="vertical" onFinish={onFinish} style={{ maxWidth: 600 }}>
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={onFinish}
+            style={{ maxWidth: 600 }}
+          >
             <Form.Item
               label="სათაური"
               name="title"
@@ -136,16 +145,20 @@ export default function EditCoursePage() {
               <Button type="primary" htmlType="submit">
                 განახლება
               </Button>
-              <Button style={{ marginLeft: 12 }} onClick={() => router.push('/')}>
+              <Button
+                style={{ marginLeft: 12 }}
+                onClick={() => router.push('/')}
+              >
                 დაბრუნება
               </Button>
             </Form.Item>
           </Form>
         </div>
 
-        {/* მარჯვენა  იუზერები */}
+        
         <div style={{ flex: 1 }}>
           <Card title="📋 დამატებული იუზერები">
+            {/* მრავალმომხმარებლიანი სელექტი  გამორიცხავს უკვე enrolled ებს */}
             <MultiUserSelect
               value={selectedUserIds}
               onChange={setSelectedUserIds}
@@ -163,6 +176,7 @@ export default function EditCoursePage() {
 
             <Divider />
 
+            {/*  დარეგისტრირებული იუზ სია წაშლით */}
             <List
               dataSource={enrolledUsers}
               renderItem={(user) => (

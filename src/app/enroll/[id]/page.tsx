@@ -1,44 +1,48 @@
-"use client";
-
+"use client"; 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation"; 
 import { Button, Form, Select, Typography, message } from "antd";
 import '@ant-design/v5-patch-for-react-19';
-import api from '@/lib/api/api'; //  გრძლად უნდა ჩავწერო 
 
-
- //  გლობალური axios instance
+import api from '@/lib/api/api'; // axios გლობალური instance  
 
 const { Title } = Typography;
 const { Option } = Select;
 
+//  ტიპი თითოეული User-ისთვის
 interface User {
   _id: string;
   username: string;
 }
 
 export default function EnrollPage() {
-  const { id } = useParams(); // კურსის ID URL-დან
-  const router = useRouter();
+  const { id } = useParams(); // 
+  const router = useRouter(); // wl
   const [form] = Form.useForm();
 
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]); 
+  const [loading, setLoading] = useState(true);   // ჩატვირთვის ინდიკატორი
 
+  // გაფილტვრა
   const fetchAvailableUsers = async () => {
     try {
+      // აიდით
       const courseRes = await api.get(`/courses/${id}`);
+
+      //  უკვე enrolled  ID ები
       const enrolledIds = courseRes.data.students.map((user: any) =>
         typeof user === "string" ? user : user._id
       );
 
-      const usersRes = await api.get("/users"); //  აქაც ჩავანაცვლე
+      // ყველა 
+      const usersRes = await api.get("/users"); // ✅ აქაც უკვე axios instance გამოიყენება
 
-      const filtered = usersRes.data.filter(  // იუსერები,რომლებიც არარიან არჩეულები
+      // ვინც არარის enrolled
+      const filtered = usersRes.data.filter(
         (user: User) => !enrolledIds.includes(user._id)
       );
 
-      setUsers(filtered);
+      setUsers(filtered); // განახლება
     } catch (err) {
       message.error("მონაცემების წამოღება ვერ მოხერხდა");
     } finally {
@@ -46,21 +50,24 @@ export default function EnrollPage() {
     }
   };
 
+  
   useEffect(() => {
     if (id) {
       fetchAvailableUsers();
     }
   }, [id]);
 
-  // რამდენიმე მომხმარებლის დამატება ერთდროულად
+  // ერთდროულად რამდენიმე იუზერის enrollment
   const onFinish = async (values: { userIds: string[] }) => {
     try {
+      // თითოეული userId-სთვის გაგზავნე enrollment PATCH API
       for (const userId of values.userIds) {
-        await api.patch(`/users/${userId}/enroll/${id}`); //  აქაც შევცვალე
+        await api.patch(`/users/${userId}/enroll/${id}`);
       }
 
       message.success("✅ მომხმარებლები წარმატებით დაემატნენ კურსზე");
       form.resetFields();
+
       router.push("/");
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "შეცდომა მოხდა";
@@ -91,7 +98,7 @@ export default function EnrollPage() {
           ]}
         >
           <Select
-            mode="multiple"
+            mode="multiple" //  მრავალმომხმარებლიანი სელექტი
             allowClear
             loading={loading}
             placeholder="მომხმარებლების არჩევა"
@@ -108,10 +115,11 @@ export default function EnrollPage() {
           <Button type="primary" htmlType="submit">
             დამატება
           </Button>
+
           <Button
             type="default"
             style={{ marginLeft: 12 }}
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/")} 
           >
             დაბრუნება
           </Button>
