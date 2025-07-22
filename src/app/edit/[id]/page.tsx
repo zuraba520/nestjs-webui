@@ -68,7 +68,7 @@ export default function EditCoursePage() {
   // წაშლა 
   const handleUnenroll = async (userId: string) => {
     try {
-      await api.patch(`/users/${userId}/unenroll/${id}`); // ✅ მოხსნის API
+      await api.patch(`/users/${userId}/unenroll/${id}`); 
       message.success('🗑️ წაიშალა');
       fetchCourse(); // განახლება
     } catch (err) {

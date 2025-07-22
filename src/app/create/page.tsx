@@ -65,7 +65,7 @@ export default function CreateCoursePage() {
             { required: true, message: 'მაქსიმალური სტუდენტების რაოდენობა აუცილებელია' },
             { type: 'number', min: 1, message: 'უნდა იყოს მინიმუმ 1' },
           ]}
-          normalize={(value) => Number(value)} //
+          normalize={(value) => Number(value)} 
         >
           <Input type="number" placeholder="მაგ: 2,4,6,8,10" />
         </Form.Item>

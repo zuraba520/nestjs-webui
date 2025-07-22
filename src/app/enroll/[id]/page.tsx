@@ -9,14 +9,14 @@ import api from '@/lib/api/api'; // axios გლობალური instance
 const { Title } = Typography;
 const { Option } = Select;
 
-//  ტიპი თითოეული User-ისთვის
+//  ტიპი თითოეული User ისთვის
 interface User {
   _id: string;
   username: string;
 }
 
 export default function EnrollPage() {
-  const { id } = useParams(); // 
+  const { id } = useParams(); 
   const router = useRouter(); // wl
   const [form] = Form.useForm();
 
@@ -35,7 +35,7 @@ export default function EnrollPage() {
       );
 
       // ყველა 
-      const usersRes = await api.get("/users"); // ✅ აქაც უკვე axios instance გამოიყენება
+      const usersRes = await api.get("/users"); 
 
       // ვინც არარის enrolled
       const filtered = usersRes.data.filter(
