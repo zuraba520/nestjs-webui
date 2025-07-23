@@ -1,33 +1,30 @@
-'use client';
+'use client'; 
 
 import React from 'react';
-
 import { Button, Form, Input, Typography } from 'antd';
 
-import api from '@/lib/api/api'; //  axios-ის გლობალური instance
-
-import { useRouter } from 'next/navigation';
-
+import api from '@/lib/api/api'; //  axios გლობალური instance  
+import { useRouter } from 'next/navigation'; //  Next.js router, window.location ის  მაგივრად
 import '@ant-design/v5-patch-for-react-19';
 
 const { Title } = Typography;
 
 export default function CreateCoursePage() {
-  //  მთავარი React კომპონენტი, რომელიც გამოაქვს ახალი კურსის დამატების გვერდს
+  
 
-  const [form] = Form.useForm();
-  // AntD_ის ფორმის კონტროლერი 
+  const [form] = Form.useForm(); 
+  const router = useRouter(); // wl
 
-  const router = useRouter(); // url ის შეცვლა 
-
-  const onFinish = async (values: any) => {//
-    // თუ წარმატებით გავიდა მხოლოდ მაშინ გაეშვება
+  const onFinish = async (values: any) => {
 
     try {
-      await api.post('/courses', values);
-      //  აგზავნის POST მოთხოვნას API_ზე კურსის შესაქმნელად
+      //  კურსის მონ.დამატება
+      await api.post('/courses', {
+        ...values,
+        status: 'active', // fallback ის გარეშე 
+      });
 
-      router.push('/');
+      router.push('/'); // wl
     } catch (err) {
       console.error('შეცდომა კურსის შექმნისას:', err);
     }
@@ -36,15 +33,17 @@ export default function CreateCoursePage() {
   return (
     <div className="min-h-screen p-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
 
-      <Title level={3} style={{ color: 'black' }}>➕ ახალი კურსის დამატება</Title>
+      <Title level={3} style={{ color: 'black' }}>
+        ➕ ახალი კურსის დამატება
+      </Title>
 
       <Form
         form={form}
         layout="vertical"
-        onFinish={onFinish}
+        onFinish={onFinish} 
         style={{ maxWidth: 600, marginTop: 32 }}
       >
-
+        {/* სათაური */}
         <Form.Item
           label="სათაური"
           name="title"
@@ -53,10 +52,12 @@ export default function CreateCoursePage() {
           <Input placeholder="მაგ: React Bootcamp" />
         </Form.Item>
 
+        {/* აღწერა */}
         <Form.Item label="აღწერა" name="description">
           <Input.TextArea rows={3} placeholder="კურსის მოკლე აღწერა" />
         </Form.Item>
 
+        {/* მაქს სტუდენტები */}
         <Form.Item
           label="მაქსიმალური სტუდენტები"
           name="maxStudents"
@@ -69,6 +70,7 @@ export default function CreateCoursePage() {
           <Input type="number" placeholder="მაგ: 2,4,6,8,10" />
         </Form.Item>
 
+        {/* submit და დაბრუნება */}
         <Form.Item>
           <Button type="primary" htmlType="submit">
             დამატება
@@ -76,11 +78,10 @@ export default function CreateCoursePage() {
 
           <Button
             style={{ marginLeft: 12 }}
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/')} // wl
           >
             მთავარ გვერდზე დაბრუნება
           </Button>
-          
         </Form.Item>
       </Form>
     </div>

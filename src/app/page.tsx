@@ -1,4 +1,4 @@
-'use client';
+'use client'; 
 
 import React, { useEffect, useState } from 'react';
 import '@ant-design/v5-patch-for-react-19';
@@ -12,24 +12,36 @@ import {
   Select,
   Pagination,
 } from 'antd';
-import api from '@/lib/api/api'; // axios-ის გლობალური instance
+import { useRouter } from 'next/navigation'; 
+import api from '@/lib/api/api'; 
 
 const { Title } = Typography;
 
-//  Course ინტერფეისი
 interface Course {
   _id: string;
   title: string;
   description: string;
   maxStudents: number;
   students: string[];
-  status: 'active' | 'deleted'; // ახალი ველი 
+  status: 'active' | 'deleted';
 }
 
+//  ტიპი fetchCourses სთვის
+type FetchCoursesParams = {
+  searchText?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+};
+
 export default function Home() {
+  const router = useRouter();
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('active');
+
+  const [statusFilter, setStatusFilter] = useState<string>('active'); 
+  const [searchText, setSearchText] = useState<string>(''); //  ძებნის ტექსტი
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -37,74 +49,98 @@ export default function Home() {
     total: 0,
   });
 
-  // წამოიღოს კურსები თავიდან
+  //  statusFilter ის ცვლილებისას
   useEffect(() => {
-    fetchCourses(undefined, 1, pagination.pageSize);
+    fetchCourses({
+      searchText,
+      status: statusFilter,
+      page: 1,
+      limit: pagination.pageSize,
+    });
   }, [statusFilter]);
 
-  //  კურსების წამოღება
-  const fetchCourses = async (
-    searchText?: string,
-    page = pagination.current,
-    limit = pagination.pageSize
-  ) => {
+  //search, pagination და filter  ყვოლიფერი ერთიანად
+  const fetchCourses = async ({
+    searchText = '',
+    status = 'active', // ფალლბექის გარეშე
+    page = 1,
+    limit = 10,
+  }: FetchCoursesParams) => {
     setLoading(true);
     try {
-      let endpoint = '';
-      if (searchText) {
-        const cleaned = searchText.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
-        endpoint = `/courses/search/text?query=${cleaned}&status=${statusFilter}`;
-      } else {
-        endpoint = `/courses?status=${statusFilter}&page=${page}&limit=${limit}`;
-      }
+      //   გაწმენდა, მრავალსიტყვიანი ძიებისთვის
+      const cleaned = searchText.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
 
-      const res = await api.get(endpoint);
-      const responseData = searchText
-        ? { data: res.data, total: res.data.length }
-        : res.data;
+      const res = await api.get('/courses/search', {
+        params: {
+          query: cleaned,
+          status,       //  status ის  პირდაპირ გადაეცემა
+          page,
+          limit,
+        },
+      });
 
-      setCourses(responseData.data || responseData);
+      setCourses(res.data.data || []);
       setPagination({
         current: page,
         pageSize: limit,
-        total: responseData.total || responseData.length,
+        total: res.data.total || 0,
       });
     } catch (err) {
       console.error('შეცდომა კურსების წამოღებისას:', err);
+      message.error('კურსების ჩამოტვირთვა ვერ მოხერხდა');
     } finally {
       setLoading(false);
     }
   };
 
-  //  ძებნა
+  //  ძებნა სეარჩში
   const handleSearch = (value: string) => {
-    const cleaned = value.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
-    fetchCourses(cleaned);
+    setSearchText(value);
+    fetchCourses({
+      searchText: value,
+      status: statusFilter,
+      page: 1,
+      limit: pagination.pageSize,
+    });
   };
 
-  //  წაშლა
+  //  კურსის წაშლა
   const handleDelete = async (courseId: string) => {
     try {
-      await api.delete(`/courses/${courseId}`); // აქაც შესაცვლელია
+      await api.delete(`/courses/${courseId}`); //  soft delete
       message.success('✅ კურსი წარმატებით წაიშალა');
-      fetchCourses(undefined, pagination.current, pagination.pageSize);
+
+      // განახლება
+      fetchCourses({
+        searchText,
+        status: statusFilter,
+        page: pagination.current,
+        limit: pagination.pageSize,
+      });
     } catch (err) {
       message.error('❌ წაშლის შეცდომა');
     }
   };
 
-  // აღდგენა
+  // წაშლილის აღდგენა
   const handleRestore = async (courseId: string) => {
     try {
       await api.patch(`/courses/${courseId}/restore`);
       message.success('✅ კურსი წარმატებით აღდგა!');
-      fetchCourses(undefined, pagination.current, pagination.pageSize);
+
+      fetchCourses({
+        searchText,
+        status: statusFilter,
+        page: pagination.current,
+        limit: pagination.pageSize,
+      });
     } catch (err) {
       message.error('❌ აღდგენის შეცდომა');
     }
   };
 
-  // ცხრილის სვეტები
+  //  ცხრილის ბოძები
   const columns = [
     {
       title: 'სათაური',
@@ -140,13 +176,13 @@ export default function Home() {
       key: 'action',
       render: (_: any, record: Course) => (
         <>
-          {/* ✏️ Edit */}
-          <Button type="link" onClick={() => (window.location.href = `/edit/${record._id}`)}>
+          {/*  კურსის რედაქტირება */}
+          <Button type="link" onClick={() => router.push(`/edit/${record._id}`)}>
             Edit
           </Button>
 
-          {/*  მომხმარებლების მართვა */}
-          <Button type="link" onClick={() => (window.location.href = `/enroll/${record._id}`)}>
+          {/* Enrollment გვერდზე გადასვლა */}
+          <Button type="link" onClick={() => router.push(`/enroll/${record._id}`)}>
             მომ.დამატება/წაშლა
           </Button>
 
@@ -162,7 +198,7 @@ export default function Home() {
             </Button>
           </Popconfirm>
 
-          {/*  აღდგენა (მხოლოდ წაშლილისთვის) */}
+          {/*  აღდგენა მხოლოდ წაშლილისთვის */}
           {record.status === 'deleted' && (
             <Popconfirm
               title="ნამდვილად გსურთ წაშლილი კურსის აღდგენა?"
@@ -182,17 +218,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen p-8 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      {/* Header */}
       <Title level={3} style={{ color: 'black' }}>📚 კურსების სია</Title>
 
-      {/* Actions: დამატება და ფილტრი */}
+      {/*  კურსის დამატება და სტატუსის ფილტრი */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-        <Button type="primary" onClick={() => window.location.href = '/create'}>
+        <Button type="primary" onClick={() => router.push('/create')}>
           ➕ კურსის დამატება
         </Button>
 
+        {/*  სტატუსის პირდაპირ გადაცემა */}
         <Select
-          defaultValue="active"
+          value={statusFilter}
           style={{ width: 180 }}
           onChange={(value) => setStatusFilter(value)}
           options={[
@@ -202,7 +238,7 @@ export default function Home() {
         />
       </div>
 
-      {/* ძებნა */}
+    
       <Input.Search
         placeholder="🔍 კურსის ძებნა"
         onSearch={handleSearch}
@@ -211,7 +247,7 @@ export default function Home() {
         style={{ maxWidth: 400, marginBottom: 20 }}
       />
 
-      {/* ცხრილი */}
+      {/*  კურსების ცხრილი */}
       <Table
         columns={columns}
         dataSource={courses}
@@ -220,7 +256,7 @@ export default function Home() {
         pagination={false}
       />
 
-      {/* pagination */}
+      {/* გვერდების კონ*/}
       <div className="flex justify-center mt-6">
         <Pagination
           current={pagination.current}
@@ -229,9 +265,14 @@ export default function Home() {
           showSizeChanger
           pageSizeOptions={['5', '10', '15', '20', '25', '30']}
           onChange={(page, pageSize) => {
-            fetchCourses(undefined, page, pageSize);
+            fetchCourses({
+              searchText,
+              status: statusFilter,
+              page,
+              limit: pageSize,
+            });
           }}
-          locale={{ items_per_page: ' users' }}
+          locale={{ items_per_page: ' კურსი' }}
         />
       </div>
     </div>
