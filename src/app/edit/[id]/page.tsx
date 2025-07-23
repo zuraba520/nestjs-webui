@@ -13,13 +13,12 @@ import {
   Divider,
 } from 'antd';
 import { useParams, useRouter } from 'next/navigation';
-import MultiUserSelect from '@/components/MultiUserSelect'; //  მულტი  სელექტი
+import MultiUserSelect from '@/components/MultiUserSelect';
 import '@ant-design/v5-patch-for-react-19';
 import api from '@/lib/api/api'; 
 
 const { Title } = Typography;
 
-//  ტიპი იუზერისთვის
 interface User {
   _id: string;
   username: string;
@@ -28,20 +27,20 @@ interface User {
 export default function EditCoursePage() {
   const [form] = Form.useForm(); 
   const router = useRouter();
-  const { id } = useParams(); //  კურსის ID URL დან
+  const { id } = useParams(); // კურსის ID
 
   const [loading, setLoading] = useState(true);
-  const [enrolledUsers, setEnrolledUsers] = useState<User[]>([]); //  უკვე დამატებული იუზერები
-  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]); //  ახალი იუზერები
+  const [enrolledUsers, setEnrolledUsers] = useState<User[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [maxStudents, setMaxStudents] = useState(0);
 
-  //  კურსის დეტალების წამოღება და ფორმაში ჩასმა
+  // კურსის წამოღება
   const fetchCourse = async () => {
     try {
       const res = await api.get(`/courses/${id}`); 
-      form.setFieldsValue(res.data); // ფორმაში  title, description და maxStudents
-      setEnrolledUsers(res.data.students); //  დარეგის იუზ
-      setMaxStudents(res.data.maxStudents); //  მაქს რაო
+      form.setFieldsValue(res.data);
+      setEnrolledUsers(res.data.students);
+      setMaxStudents(res.data.maxStudents);
     } catch (err) {
       message.error('შეცდომა კურსის წამოღებისას');
     } finally {
@@ -49,56 +48,58 @@ export default function EditCoursePage() {
     }
   };
 
-  
   useEffect(() => {
     if (id) fetchCourse();
   }, [id]);
 
-  // კურსის განახლება
+  //  კურსის განახლება  აქ დამატებულია enrollment ის რაოდენობის შემოწმება
   const onFinish = async (values: any) => {
+    if (enrolledUsers.length > values.maxStudents) {
+      message.error(
+        `უკვე მაქსიმალური რაოდენობის ${enrolledUsers.length} სტუდენტი, ვერ ჩაანაცვლებ ${values.maxStudents}-ზე ნაკლებს.`
+      );
+      return;
+    }
+
     try {
       await api.patch(`/courses/${id}`, values);
       message.success('კურსი განახლდა');
-      router.push('/'); 
+      router.push('/');
     } catch (err) {
       message.error('კურსის განახლება ვერ მოხერხდა');
     }
   };
 
-  // წაშლა 
   const handleUnenroll = async (userId: string) => {
     try {
-      await api.patch(`/users/${userId}/unenroll/${id}`); 
+      await api.patch(`/users/${userId}/unenroll/${id}`);
       message.success('🗑️ წაიშალა');
-      fetchCourse(); // განახლება
+      fetchCourse();
     } catch (err) {
       message.error('შეცდომა წაშლისას');
     }
   };
 
-  //  მულტი  enrollment
   const handleBatchEnroll = async () => {
     if (selectedUserIds.length === 0) {
-      message.warning('აირჩიე მაინც ერთი');
+      message.warning('აირჩიე ერთი მაინც');
       return;
     }
 
-    //  Enrollment ლიმიტის გადამოწმება
     if (enrolledUsers.length + selectedUserIds.length > maxStudents) {
       message.error(`დაშვებულია მაქსიმუმ ${maxStudents} სტუდენტი`);
       return;
     }
 
     try {
-      // რამოდენიმე ანუ  ერთდროული enrollment ყველა იუზერისთვის
       await Promise.all(
         selectedUserIds.map((userId) =>
           api.patch(`/users/${userId}/enroll/${id}`)
         )
       );
       message.success('დაემატნენ წარმატებით');
-      setSelectedUserIds([]); 
-      fetchCourse(); // განახლება
+      setSelectedUserIds([]);
+      fetchCourse();
     } catch (err) {
       message.error('დამატების შეცდომა');
     }
@@ -109,7 +110,6 @@ export default function EditCoursePage() {
       <Title level={3}>✏️ კურსის რედაქტირება</Title>
 
       <div style={{ display: 'flex', gap: 40 }}>
-        {/*  მარცხენა   ფორმა */}
         <div style={{ flex: 1 }}>
           <Form
             form={form}
@@ -155,10 +155,8 @@ export default function EditCoursePage() {
           </Form>
         </div>
 
-        
         <div style={{ flex: 1 }}>
           <Card title="📋 დამატებული იუზერები">
-            {/* მრავალმომხმარებლიანი სელექტი  გამორიცხავს უკვე enrolled ებს */}
             <MultiUserSelect
               value={selectedUserIds}
               onChange={setSelectedUserIds}
@@ -176,7 +174,6 @@ export default function EditCoursePage() {
 
             <Divider />
 
-            {/*  დარეგისტრირებული იუზ სია წაშლით */}
             <List
               dataSource={enrolledUsers}
               renderItem={(user) => (
